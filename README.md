@@ -1,6 +1,6 @@
-音画 -ONGA- Premium 🎧
-DTM楽曲をX（旧Twitter）で魅力的に宣伝するための宣伝カード作成ツールです。
-こだわりを可視化して、あなたの楽曲の魅力を1枚の画像に凝縮します。
+音画 -ONGA- Premium 🎧<br>
+DTM楽曲をX（旧Twitter）で魅力的に宣伝するための宣伝カード作成ツールです。<br>
+こだわりを可視化して、あなたの楽曲の魅力を1枚の画像に凝縮します。<br>
 
 🚀 [(https://ankakepizza551.github.io/music_-review/)]
 
