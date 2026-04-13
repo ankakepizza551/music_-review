@@ -3,324 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DTM宣伝ブースター「ツイ盛」Premium</title>
+    <title>DTM宣伝ツール「音画 -ONGA-」Premium</title>
     <style>
         :root {
             --bg-color: #0f0c29;
             --text-color: #e9e9e9;
             --highlight-color: #00d2ff;
-            --border-color: #333;
+            --accent-pink: #ff00ff;
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'BIZ UDPGothic', sans-serif;
-            background-color: var(--bg-color);
-            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             color: var(--text-color);
-            margin: 0;
-            padding: 15px;
-            min-height: 100vh;
+            margin: 0; padding: 10px; min-height: 100vh;
         }
 
-        .container { max-width: 1000px; margin: 0 auto; }
-        h1 { text-align: center; color: var(--highlight-color); font-size: 1.8rem; margin-bottom: 5px; text-shadow: 0 0 10px rgba(0, 210, 255, 0.5); }
-        .description { text-align: center; margin-bottom: 20px; font-size: 0.8em; color: #aaa; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        
+        /* ヘッダーデザイン */
+        header { text-align: center; padding: 20px 0; }
+        .logo { font-size: 2.5rem; font-weight: 900; letter-spacing: 4px; color: #fff; text-shadow: 0 0 20px var(--highlight-color); margin: 0; }
+        .logo span { color: var(--highlight-color); }
+        .tagline { font-size: 0.8rem; color: #aaa; margin-top: 5px; }
 
-        .panel-container { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        @media (min-width: 850px) { .panel-container { grid-template-columns: 1fr 1fr; } }
+        .main-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 900px) { .main-layout { grid-template-columns: 450px 1fr; } }
 
-        .panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); padding: 20px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
-        .panel h2 { margin-top: 0; font-size: 1.1em; color: var(--highlight-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; }
+        /* ステップ形式のパネル */
+        .step-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .step-num { display: inline-block; width: 24px; height: 24px; background: var(--highlight-color); color: #000; border-radius: 50%; text-align: center; line-height: 24px; font-weight: bold; margin-right: 10px; font-size: 0.8em; vertical-align: middle; }
+        .step-title { font-size: 1.1em; font-weight: bold; color: var(--highlight-color); }
 
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.85em; color: #00d2ff; }
-        input[type="text"], input[type="url"], input[type="number"], textarea, select {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid #444;
-            background-color: rgba(0,0,0,0.3); color: #fff; box-sizing: border-box; font-size: 16px;
+        /* 入力フォーム装飾 */
+        label { display: block; margin: 15px 0 5px; font-size: 0.85em; font-weight: bold; color: #ccc; }
+        label i { margin-right: 5px; color: var(--highlight-color); }
+        input, select, textarea {
+            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #444;
+            background: rgba(0,0,0,0.5); color: #fff; box-sizing: border-box; font-size: 15px; transition: 0.3s;
         }
+        input:focus { border-color: var(--highlight-color); outline: none; box-shadow: 0 0 10px rgba(0,210,255,0.2); }
 
-        .flex-row { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
-        .flex-row input { margin-bottom: 0; }
+        /* テンプレートセレクター */
+        .temp-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .temp-btn { padding: 8px; font-size: 0.8em; background: rgba(255,255,255,0.1); border: 1px solid transparent; border-radius: 5px; color: #fff; cursor: pointer; text-align: center; }
+        .temp-btn.active { border-color: var(--highlight-color); background: rgba(0, 210, 255, 0.2); }
 
-        .checkbox-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 15px; }
-        .checkbox-item { display: flex; align-items: center; font-size: 0.75em; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 4px; cursor: pointer; }
-        .checkbox-item input { margin-right: 5px; }
+        /* プレビュー固定表示（PC用） */
+        .sticky-preview { position: sticky; top: 20px; }
+        .canvas-container { background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5); line-height: 0; }
+        canvas { display: none; }
+        #result-image { width: 100%; height: auto; }
 
-        button { width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 10px; transition: 0.3s; }
-        .btn-generate { background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white; font-size: 1.1em; box-shadow: 0 4px 15px rgba(0, 210, 255, 0.3); }
-        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 210, 255, 0.5); }
-        .btn-copy { background-color: #4a4e69; color: white; }
-        .btn-x { background-color: #000; color: white; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 0.9em; border-radius: 10px; height: 50px; font-weight: bold; }
-
-        .preview-area { text-align: center; margin-bottom: 15px; background-color: #000; border-radius: 10px; overflow: hidden; line-height: 0; position: relative; }
-        #image-canvas { display: none; }
-        #result-image { width: 100%; max-width: 500px; height: auto; cursor: pointer; transition: 0.2s; }
-        #result-image:active { transform: scale(0.98); }
-        .save-hint { font-size: 0.75em; color: #888; margin-top: 5px; text-align: center; }
-
-        #result-text { height: 180px; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85em; background: #000; color: #00ff00; border: 1px solid #333; line-height: 1.4; }
+        .btn-x { background: #000; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center; height: 55px; border-radius: 12px; font-weight: bold; margin-top: 10px; border: 1px solid #333; }
+        .btn-copy { background: #4a4e69; color: white; border: none; height: 55px; border-radius: 12px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+<header>
+    <p class="logo">音<span>画</span> -ONGA-</p>
+    <div class="tagline">楽曲の魂を1枚のカードへ。DTM宣伝ブースター</div>
+</header>
+
 <div class="container">
-    <h1>ツイ盛 Premium 🎧</h1>
-    <div class="description">こだわりを可視化してバズを狙え！フォント自動調整＆エフェクト搭載。</div>
+    <div class="main-layout">
+        <div class="settings">
+            <div class="step-panel">
+                <span class="step-num">1</span><span class="step-title">ベース設定</span>
+                
+                <label>📁 ジャケット画像</label>
+                <input type="file" id="image-input" accept="image/*">
 
-    <div class="panel-container">
-        <div class="panel">
-            <h2>1. 楽曲パラメーター</h2>
-            
-            <label>ジャケット画像 (正方形推奨)</label>
-            <input type="file" id="image-input" accept="image/*">
-
-            <label>楽曲タイトル</label>
-            <input type="text" id="title" placeholder="曲名を入力 (長い場合は自動縮小)">
-
-            <label>キャッチコピー</label>
-            <input type="text" id="catchphrase" placeholder="例：サビの転調で脳が溶ける。">
-
-            <div class="flex-row">
-                <div style="flex: 1;">
-                    <label>ジャンル</label>
-                    <select id="genre">
-                        <option value="pop">J-Pop / Pops</option>
-                        <option value="rock">Rock / Loud / Metal</option>
-                        <option value="edm">EDM / Future Bass</option>
-                        <option value="vocaloid">Vocaloid / 歌ってみた</option>
-                        <option value="lofi">Lo-fi / Chill / HipHop</option>
-                        <option value="game">Game / Chiptune</option>
-                        <option value="orchestra">Orchestra / Cinematic</option>
-                        <option value="touhou">Touhou Arrange / Remix</option>
-                    </select>
+                <label>🏷 テンプレート選択</label>
+                <div class="temp-grid">
+                    <div class="temp-btn active" data-temp="standard">標準</div>
+                    <div class="temp-btn" data-temp="emo">エモ系</div>
+                    <div class="temp-btn" data-temp="cyber">音圧/電波</div>
                 </div>
-                <div style="flex: 1;">
-                    <label>画像エフェクト</label>
-                    <select id="effect-type">
-                        <option value="none">なし (クリア)</option>
-                        <option value="noise">ノイズ (アナログ風)</option>
-                        <option value="vivid">ビビッド (鮮やか)</option>
-                        <option value="mono">モノクロ (シック)</option>
-                    </select>
+
+                <label>🎧 楽曲タイトル</label>
+                <input type="text" id="title" placeholder="曲名を入力" maxlength="40">
+
+                <label>✍️ キャッチコピー</label>
+                <input type="text" id="catchphrase" placeholder="例：脳を揺らす重低音。">
+            </div>
+
+            <div class="step-panel">
+                <span class="step-num">2</span><span class="step-title">こだわり & リンク</span>
+                
+                <label>⏰ 聴きどころ秒数</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="t-min" placeholder="分" min="0">
+                    <input type="number" id="t-sec" placeholder="秒" min="0" max="59">
                 </div>
+
+                <label>✨ こだわりポイント</label>
+                <div id="points-area" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <label style="font-size: 0.7em; margin: 0;"><input type="checkbox" name="points" value="サビ"> サビ</label>
+                    <label style="font-size: 0.7em; margin: 0;"><input type="checkbox" name="points" value="転調"> 転調</label>
+                    <label style="font-size: 0.7em; margin: 0;"><input type="checkbox" name="points" value="重低音"> 重低音</label>
+                    <label style="font-size: 0.7em; margin: 0;"><input type="checkbox" name="points" value="音圧"> 音圧</label>
+                </div>
+
+                <label>🔗 配信URL</label>
+                <input type="url" id="url" placeholder="https://youtube.com/...">
             </div>
-
-            <label>聴きどころタイムスタンプ</label>
-            <div class="flex-row">
-                <input type="number" id="timestamp-min" placeholder="分" min="0">
-                <span>:</span>
-                <input type="number" id="timestamp-sec" placeholder="秒" min="0" max="59">
-            </div>
-
-            <label>こだわりポイント (4つまで画像に反映)</label>
-            <div class="checkbox-group">
-                <label class="checkbox-item"><input type="checkbox" name="points" value="キャッチーなサビ">サビ</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="エモい転調">転調</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="鉄壁のコード進行">コード</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="腹に響く重低音">重低音</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="限界突破の音圧">音圧</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="緻密な音作り">音作り</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="エモーショナルな歌詞">歌詞</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="圧倒的中毒性">中毒性</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="生楽器の空気感">生楽器</label>
-                <label class="checkbox-item"><input type="checkbox" name="points" value="壮大な世界観">世界観</label>
-            </div>
-
-            <label>URL (YouTube/ニコニコ/SoundCloud等)</label>
-            <input type="url" id="url" placeholder="https://...">
-
-            <button class="btn-generate" id="generate-btn">宣伝セットを生成！</button>
         </div>
 
-        <div class="panel">
-            <h2>2. 完成画像 (長押し保存)</h2>
-            <div class="preview-area">
-                <canvas id="image-canvas" width="800" height="800"></canvas>
-                <img id="result-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E" alt="生成画像">
+        <div class="preview-column">
+            <div class="sticky-preview">
+                <div class="step-panel">
+                    <span class="step-num">3</span><span class="step-title">プレビュー & 書き出し</span>
+                    <div class="canvas-container" style="margin-top: 15px;">
+                        <canvas id="canvas" width="800" height="800"></canvas>
+                        <img id="result-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800'%3E%3Crect width='100%25' height='100%25' fill='%23111'/%3E%3Ctext x='50%25' y='50%25' fill='%23444' font-family='sans-serif' font-size='30' text-anchor='middle'%3E画像を選択してください%3C/text%3E%3C/svg%3E">
+                    </div>
+                    <p style="font-size: 0.7em; color: #888; text-align: center; margin-top: 10px;">スマホは長押し保存 / PCは右クリック保存</p>
+                    
+                    <textarea id="result-text" readonly style="margin-top: 15px; height: 120px; font-size: 0.8em; color: #0f0;"></textarea>
+                    <button class="btn-copy" id="copy-btn">📋 テキストをコピー</button>
+                    <a href="#" class="btn-x" id="x-btn" target="_blank">𝕏 楽曲を布教する</a>
+                </div>
             </div>
-            <p class="save-hint">↑ スマホ:長押し / PC:右クリック で保存</p>
-
-            <h2>3. 投稿用テキスト</h2>
-            <textarea id="result-text" readonly></textarea>
-            
-            <button class="btn-copy" id="copy-btn">テキストをコピー</button>
-            <a href="#" class="btn-x" id="x-share-btn" target="_blank">Xにポストする</a>
         </div>
     </div>
 </div>
 
 <script>
-    const imageInput = document.getElementById('image-input');
-    const canvas = document.getElementById('image-canvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const resultImg = document.getElementById('result-image');
-    const generateBtn = document.getElementById('generate-btn');
-    const resultText = document.getElementById('result-text');
-    const copyBtn = document.getElementById('copy-btn');
-    const xShareBtn = document.getElementById('x-share-btn');
-
     let uploadedImg = null;
+    let currentTemp = 'standard';
 
-    imageInput.addEventListener('change', (e) => {
+    // テンプレート切り替え
+    document.querySelectorAll('.temp-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTemp = btn.dataset.temp;
+            update();
+        });
+    });
+
+    // 入力イベント（リアルタイム更新）
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', update);
+    });
+
+    // 画像アップロード
+    document.getElementById('image-input').addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = (ev) => {
             const img = new Image();
-            img.onload = () => { uploadedImg = img; };
-            img.src = event.target.result;
+            img.onload = () => { uploadedImg = img; update(); };
+            img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
     });
 
-    // Canvasの角丸四角形用
-    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-        if (w < 2 * r) r = w / 2;
-        if (h < 2 * r) r = h / 2;
-        this.beginPath();
-        this.moveTo(x + r, y);
-        this.arcTo(x + w, y, x + w, y + h, r);
-        this.arcTo(x + w, y + h, x, y + h, r);
-        this.arcTo(x, y + h, x, y, r);
-        this.arcTo(x, y, x + w, y, r);
-        this.closePath();
-        return this;
+    function update() {
+        drawCanvas();
+        generateText();
     }
 
-    function draw() {
-        if (!uploadedImg) { alert('ジャケット画像をアップロードしてください！'); return; }
+    function drawCanvas() {
+        if (!uploadedImg) return;
         
-        const title = document.getElementById('title').value || 'Untitled Song';
-        const genre = document.getElementById('genre').value;
-        const effect = document.getElementById('effect-type').value;
+        const title = document.getElementById('title').value || 'Untitled';
+        const catchphrase = document.getElementById('catchphrase').value || '';
         const points = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.value);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, 800, 800);
 
-        // 1. 画像描画（エフェクト適用）
-        ctx.save();
-        ctx.filter = 'none';
-        if (effect === 'noise') ctx.filter = 'contrast(110%) brightness(95%) sepia(10%)';
-        if (effect === 'vivid') ctx.filter = 'saturate(170%) contrast(110%)';
-        if (effect === 'mono') ctx.filter = 'grayscale(100%) contrast(120%)';
-        
-        const size = Math.min(uploadedImg.width, uploadedImg.height);
-        ctx.drawImage(uploadedImg, (uploadedImg.width - size) / 2, (uploadedImg.height - size) / 2, size, size, 0, 0, canvas.width, canvas.height);
-        ctx.restore();
+        // 背景描画
+        const s = Math.min(uploadedImg.width, uploadedImg.height);
+        ctx.drawImage(uploadedImg, (uploadedImg.width-s)/2, (uploadedImg.height-s)/2, s, s, 0, 0, 800, 800);
 
-        // ノイズのテクスチャを物理的に描画
-        if (effect === 'noise') {
-            for (let i = 0; i < 8000; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                ctx.fillStyle = 'rgba(255,255,255,0.04)';
-                ctx.fillRect(x, y, 1, 1);
-            }
+        // テンプレート別装飾
+        if (currentTemp === 'emo') {
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.fillRect(0, 0, 800, 800);
+            ctx.font = '32px "serif", "YuMincho"';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`― ${catchphrase} ―`, 400, 400);
+            
+            ctx.font = 'bold 60px "serif", "YuMincho"';
+            ctx.fillText(title, 400, 700);
+        } else if (currentTemp === 'cyber') {
+            ctx.strokeStyle = '#00d2ff';
+            ctx.lineWidth = 20;
+            ctx.strokeRect(0,0,800,800);
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(0, 600, 800, 200);
+            ctx.font = 'italic bold 70px sans-serif';
+            ctx.fillStyle = '#00d2ff';
+            ctx.shadowBlur = 15; ctx.shadowColor = '#00d2ff';
+            ctx.fillText(title, 40, 720);
+            ctx.shadowBlur = 0;
+        } else {
+            // 標準
+            const g = ctx.createLinearGradient(0, 500, 0, 800);
+            g.addColorStop(0, 'transparent'); g.addColorStop(1, '#000');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 500, 800, 300);
+            ctx.fillStyle = '#00d2ff';
+            ctx.fillRect(0, 0, 800, 80);
+            ctx.fillStyle = '#000'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('NEW RELEASE', 400, 55);
+            ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.font = 'bold 60px sans-serif';
+            ctx.fillText(title, 40, 730);
         }
-
-        // ジャンル別カラー
-        const theme = {
-            pop: '#ff00ff', rock: '#ffcf00', edm: '#00fff2', vocaloid: '#39ff14',
-            lofi: '#9d50bb', game: '#ff4b2b', orchestra: '#ffffff', touhou: '#ff0000'
-        }[genre];
-
-        // 上部帯
-        ctx.fillStyle = theme;
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 15;
-        ctx.fillRect(0, 0, canvas.width, 100);
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 50px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🎧 NEW RELEASE 🎧', canvas.width / 2, 65);
-
-        // 下部エリア
-        const grad = ctx.createLinearGradient(0, canvas.height - 250, 0, canvas.height);
-        grad.addColorStop(0, 'transparent');
-        grad.addColorStop(1, 'rgba(0,0,0,0.95)');
-        ctx.fillStyle = grad;
-        ctx.shadowBlur = 0;
-        ctx.fillRect(0, canvas.height - 250, canvas.width, 250);
-
-        // 2. タイトルの自動縮小ロジック
-        let fontSize = 65;
-        ctx.font = `bold ${fontSize}px sans-serif`;
-        while (ctx.measureText(title).width > canvas.width - 80 && fontSize > 20) {
-            fontSize -= 2;
-            ctx.font = `bold ${fontSize}px sans-serif`;
-        }
-
-        ctx.shadowColor = theme;
-        ctx.shadowBlur = 20;
-        ctx.fillStyle = '#fff';
-        ctx.textAlign = 'left';
-        ctx.fillText(title, 40, canvas.height - 60);
-
-        // こだわりタグ（最大4つ表示）
-        ctx.shadowBlur = 0;
-        let tagX = 40;
-        ctx.font = 'bold 24px sans-serif';
-        points.slice(0, 4).forEach(p => {
-            const txt = '#' + p;
-            const tw = ctx.measureText(txt).width;
-            ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.roundRect(tagX - 8, canvas.height - 165, tw + 16, 40, 8);
-            ctx.fill();
-            ctx.fillStyle = theme;
-            ctx.fillText(txt, tagX, canvas.height - 137);
-            tagX += tw + 30;
-        });
 
         resultImg.src = canvas.toDataURL('image/png');
     }
 
-    function createText() {
+    function generateText() {
         const title = document.getElementById('title').value || 'New Song';
-        const catchphrase = document.getElementById('catchphrase').value || '魂の1曲。';
         const url = document.getElementById('url').value || '';
-        const min = document.getElementById('timestamp-min').value;
-        const sec = document.getElementById('timestamp-sec').value;
-        const points = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.value);
-        
-        const timeStr = (min || sec) ? `\n🔥 聴きどころ: ${min || 0}:${sec.padStart(2, '0')}〜` : '';
-        const pStr = points.length ? points.join('・') : '全部';
+        const m = document.getElementById('t-min').value;
+        const s = document.getElementById('t-sec').value;
+        const time = (m || s) ? `\n🎧 ${m || 0}:${s.padStart(2, '0')}〜 聴いて！` : '';
 
-        const templates = [
-`◤◢◤◢ NEW RELEASE ◤◢◤◢
-『 ${title} 』
-―― ${catchphrase} ――
-${timeStr}
-【こだわり】${pStr}
-
-🎧 今すぐチェック！
-👉 ${url}
-
-#DTM #作編曲 #オリジナル曲`,
-`【新曲公開】『${title}』
-${catchphrase} 🎧⚡
-${timeStr}
-■ こだわり：${pStr}
-
-とにかく聴いてほしい。脳に刺さります！！
-聴く 👉 ${url}
-
-#DTM #オリジナル曲`
-        ];
-
-        const text = templates[Math.floor(Math.random() * templates.length)];
-        resultText.value = text;
-        xShareBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        const txt = `【新曲】『${title}』公開！${time}\n\nチェックする👉 ${url}\n#DTM #音画`;
+        document.getElementById('result-text').value = txt;
+        document.getElementById('x-btn').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(txt)}`;
     }
 
-    generateBtn.addEventListener('click', () => {
-        draw();
-        createText();
-    });
-
-    copyBtn.addEventListener('click', () => {
-        resultText.select();
+    document.getElementById('copy-btn').onclick = () => {
+        document.getElementById('result-text').select();
         document.execCommand('copy');
-        alert('テキストをコピーしました！');
-    });
+        alert('コピーしました！');
+    };
 </script>
 </body>
 </html>
