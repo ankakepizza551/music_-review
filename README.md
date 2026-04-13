@@ -2,7 +2,7 @@
 DTM楽曲をX（旧Twitter）で魅力的に宣伝するための宣伝カード作成ツールです。<br>
 こだわりを可視化して、あなたの楽曲の魅力を1枚の画像に凝縮します。<br>
 
-🚀 [(https://ankakepizza551.github.io/music_-review/)]
+🚀 [URL→(https://ankakepizza551.github.io/music_-review/)]
 
 ■ 特徴
 テンプレート切り替え: 曲調に合わせて「標準」「エモ系」「音圧/電波」からデザインを選択可能。<br>
