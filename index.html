@@ -131,8 +131,8 @@
                     
                     <textarea id="result-text" readonly style="margin-top: 15px; height: 110px; font-family: monospace; font-size: 0.85em; background: #000; color: #00ff00;"></textarea>
                     <button class="btn-copy" id="copy-btn">テキストをコピー</button>
-                    <a href="#" class="btn-x" id="x-btn" target="_blank">𝕏 にポストして布教する</a>
-                    <p style="font-size: 0.7em; color: #888; text-align: center; margin-top: 10px;">画像保存：右クリック または 長押し</p>
+                    <button class="btn-x" id="x-btn" style="width:100%; border:none; cursor:pointer;">𝕏 画像付きでシェアする</button>
+                    <p id="share-hint" style="font-size: 0.7em; color: #888; text-align: center; margin-top: 10px;"></p>
                 </div>
             </div>
         </div>
@@ -291,7 +291,7 @@ ${timeStr}
 #DTM #作編曲 #オリジナル曲 #音画`;
 
         document.getElementById('result-text').value = text;
-        document.getElementById('x-btn').href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window._xPostText = text;
     }
 
     document.getElementById('copy-btn').onclick = () => {
@@ -304,6 +304,41 @@ ${timeStr}
             });
         } else {
             fallbackCopy(txt);
+        }
+    };
+
+    // シェアボタンの説明をデバイスに応じて切り替え
+    const shareHint = document.getElementById('share-hint');
+    if (navigator.share && navigator.canShare) {
+        shareHint.textContent = 'タップすると画像＋テキストをそのままシェアできます';
+    } else {
+        shareHint.textContent = '※ Web Share API はこのブラウザ/端末では非対応です。スマホからご利用ください。';
+    }
+
+    document.getElementById('x-btn').onclick = async () => {
+        if (!uploadedImg) {
+            alert('先にジャケット画像を読み込んでください。');
+            return;
+        }
+        const text = window._xPostText || document.getElementById('result-text').value;
+
+        // Web Share API（スマホ向け）
+        if (navigator.share && navigator.canShare) {
+            canvas.toBlob(async (blob) => {
+                const title = document.getElementById('title').value || 'New Song';
+                const file = new File([blob], `${title}.png`, { type: 'image/png' });
+                if (navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({ files: [file], text });
+                    } catch (e) {
+                        if (e.name !== 'AbortError') alert('シェアに失敗しました。');
+                    }
+                } else {
+                    alert('このブラウザは画像付きシェアに対応していません。');
+                }
+            }, 'image/png');
+        } else {
+            alert('Web Share API はこのブラウザ/端末では非対応です。\nスマホのブラウザからご利用ください。');
         }
     };
 
