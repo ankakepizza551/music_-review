@@ -94,7 +94,7 @@
             <div class="step-panel">
                 <div class="step-header"><span class="step-num">2</span><span class="step-title">アピールポイント</span></div>
                 
-                <label>✨ こだわり（複数選択）</label>
+                <label>✨ こだわり（複数選択・画像には上位3件表示）</label>
                 <div class="chip-group" id="points-area">
                     <input type="checkbox" id="p1" name="points" value="キャッチーなサビ" hidden><label for="p1" class="chip">サビ</label>
                     <input type="checkbox" id="p2" name="points" value="エモい転調" hidden><label for="p2" class="chip">転調</label>
@@ -146,18 +146,20 @@
     let uploadedImg = null;
     let currentTemp = 'standard';
 
-    // Canvasの角丸四角形
-    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-        if (w < 2 * r) r = w / 2;
-        if (h < 2 * r) r = h / 2;
-        this.beginPath();
-        this.moveTo(x + r, y);
-        this.arcTo(x + w, y, x + w, y + h, r);
-        this.arcTo(x + w, y + h, x, y + h, r);
-        this.arcTo(x, y + h, x, y, r);
-        this.arcTo(x, y, x + w, y, r);
-        this.closePath();
-        return this;
+    // Canvasの角丸四角形（標準未実装の場合のみポリフィル）
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.beginPath();
+            this.moveTo(x + r, y);
+            this.arcTo(x + w, y, x + w, y + h, r);
+            this.arcTo(x + w, y + h, x, y + h, r);
+            this.arcTo(x, y + h, x, y, r);
+            this.arcTo(x, y, x + w, y, r);
+            this.closePath();
+            return this;
+        };
     }
 
     // イベント設定
@@ -186,9 +188,13 @@
         reader.readAsDataURL(file);
     });
 
+    let debounceTimer;
     function update() {
-        drawCanvas();
-        generateText();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            drawCanvas();
+            generateText();
+        }, 150);
     }
 
     function drawCanvas() {
@@ -243,8 +249,8 @@
             ctx.fillText(title, 40, 740);
         }
 
-        // こだわりタグ（下部テンプレート共通）
-        if (currentTemp !== 'emo' && points.length > 0) {
+        // こだわりタグ（全テンプレート共通）
+        if (points.length > 0) {
             ctx.font = 'bold 22px sans-serif';
             let tx = 45;
             points.slice(0, 3).forEach(p => {
@@ -266,10 +272,11 @@
         const catchphrase = document.getElementById('catchphrase').value || '魂の1曲。';
         const url = document.getElementById('url').value || '';
         const m = document.getElementById('t-min').value;
-        const s = document.getElementById('t-sec').value;
+        const sRaw = document.getElementById('t-sec').value;
+        const s = sRaw !== '' ? String(Math.min(59, Math.max(0, parseInt(sRaw) || 0))).padStart(2, '0') : '';
         const points = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.value);
         
-        const timeStr = (m || s) ? `\n🔥 聴きどころ: ${m || 0}:${s.padStart(2, '0')}〜` : '';
+        const timeStr = (m || s) ? `\n🔥 聴きどころ: ${m || 0}:${s || '00'}〜` : '';
         const pStr = points.length ? points.join('・') : '全部';
 
         const text = `◤◢◤◢ NEW RELEASE ◤◢◤◢
@@ -288,11 +295,29 @@ ${timeStr}
     }
 
     document.getElementById('copy-btn').onclick = () => {
-        const txt = document.getElementById('result-text');
-        txt.select();
-        document.execCommand('copy');
-        alert('コピーしました！');
+        const txt = document.getElementById('result-text').value;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(txt).then(() => {
+                alert('コピーしました！');
+            }).catch(() => {
+                fallbackCopy(txt);
+            });
+        } else {
+            fallbackCopy(txt);
+        }
     };
+
+    function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('コピーしました！');
+    }
 </script>
 </body>
 </html>
