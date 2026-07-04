@@ -214,6 +214,31 @@
             background: rgba(201,168,76,0.04);
         }
 
+        #drop-zone {
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+
+        #drop-zone.drag-over {
+            outline: 2px dashed var(--gold);
+            outline-offset: 3px;
+            background: rgba(201,168,76,0.06);
+        }
+
+        #drop-hint {
+            margin-top: 6px;
+            font-size: 0.68rem;
+            color: var(--muted);
+            letter-spacing: 0.03em;
+        }
+
+        .char-count {
+            margin-top: 5px;
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-align: right;
+        }
+
         .timestamp-row {
             display: flex;
             align-items: center;
@@ -449,7 +474,10 @@
 
                 <div class="field">
                     <label>ジャケット画像</label>
-                    <input type="file" id="image-input" accept="image/*">
+                    <div id="drop-zone">
+                        <input type="file" id="image-input" accept="image/*">
+                        <p id="drop-hint">ここに画像をドラッグ＆ドロップ、またはコピーした画像を貼り付け（Ctrl+V）</p>
+                    </div>
                 </div>
 
                 <div class="field">
@@ -470,11 +498,13 @@
                 <div class="field">
                     <label>楽曲タイトル</label>
                     <input type="text" id="title" placeholder="曲名を入力" maxlength="40">
+                    <p class="char-count" id="title-count">0 / 40</p>
                 </div>
 
                 <div class="field">
                     <label>キャッチコピー</label>
-                    <input type="text" id="catchphrase" placeholder="例：脳を揺らす、魂の1曲。">
+                    <input type="text" id="catchphrase" placeholder="例：脳を揺らす、魂の1曲。" maxlength="60">
+                    <p class="char-count" id="catchphrase-count">0 / 60</p>
                 </div>
             </div>
 
@@ -579,9 +609,8 @@
 
     document.querySelectorAll('input:not([name="points"])').forEach(el => el.addEventListener('input', update));
 
-    document.getElementById('image-input').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    function loadImageFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
             const img = new Image();
@@ -589,6 +618,37 @@
             img.src = ev.target.result;
         };
         reader.readAsDataURL(file);
+    }
+
+    document.getElementById('image-input').addEventListener('change', (e) => {
+        loadImageFile(e.target.files[0]);
+    });
+
+    // ─── ドラッグ&ドロップ / ペースト対応 ───
+    const dropZone = document.getElementById('drop-zone');
+
+    ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        loadImageFile(file);
+    });
+
+    document.addEventListener('paste', (e) => {
+        const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'));
+        if (item) loadImageFile(item.getAsFile());
     });
 
     let debounceTimer;
@@ -602,6 +662,14 @@
 
     // ─── ヘルパー ───
     function drawImage() {
+        if (!uploadedImg) {
+            const g = ctx.createLinearGradient(0, 0, 800, 800);
+            g.addColorStop(0, '#1a1a22');
+            g.addColorStop(1, '#0a0a0f');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, 800, 800);
+            return;
+        }
         const s = Math.min(uploadedImg.width, uploadedImg.height);
         ctx.drawImage(uploadedImg,
             (uploadedImg.width - s) / 2, (uploadedImg.height - s) / 2, s, s,
@@ -873,7 +941,6 @@
     });
 
     function drawCanvas() {
-        if (!uploadedImg) return;
         const title       = document.getElementById('title').value || 'Untitled';
         const catchphrase = document.getElementById('catchphrase').value || '';
         const points      = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.value);
@@ -923,6 +990,64 @@
         window._xPostText = text;
     }
 
+    // ─── 文字数カウンター ───
+    function updateCharCount(inputId, countId) {
+        const input = document.getElementById(inputId);
+        const count = document.getElementById(countId);
+        count.textContent = `${input.value.length} / ${input.maxLength}`;
+    }
+
+    ['title', 'catchphrase'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => updateCharCount(id, `${id}-count`));
+        updateCharCount(id, `${id}-count`);
+    });
+
+    // ─── 入力内容の自動保存・復元（ローカルのみ） ───
+    const STORAGE_KEY = 'onga-premium-form';
+    const PERSISTED_FIELDS = ['title', 'catchphrase', 't-min', 't-sec', 'url'];
+
+    function saveFormState() {
+        const state = {};
+        PERSISTED_FIELDS.forEach(id => { state[id] = document.getElementById(id).value; });
+        state.points = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.id);
+        state.temp = currentTemp;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    function restoreFormState() {
+        let state;
+        try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return; }
+        if (!state) return;
+
+        PERSISTED_FIELDS.forEach(id => {
+            if (state[id]) document.getElementById(id).value = state[id];
+        });
+
+        (state.points || []).forEach(id => {
+            const cb = document.getElementById(id);
+            if (cb) cb.checked = true;
+        });
+        updateChipLimit();
+
+        if (state.temp) {
+            const btn = document.querySelector(`.temp-btn[data-temp="${state.temp}"]`);
+            if (btn) {
+                document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTemp = state.temp;
+            }
+        }
+
+        updateCharCount('title', 'title-count');
+        updateCharCount('catchphrase', 'catchphrase-count');
+    }
+
+    document.querySelectorAll('.settings-col input').forEach(el => {
+        el.addEventListener('input', saveFormState);
+        el.addEventListener('change', saveFormState);
+    });
+    document.querySelectorAll('.temp-btn').forEach(btn => btn.addEventListener('click', saveFormState));
+
     // ─── コピー ───
     document.getElementById('copy-btn').onclick = () => {
         const txt = document.getElementById('result-text').value;
@@ -953,7 +1078,6 @@
     }
 
     document.getElementById('x-btn').onclick = async () => {
-        if (!uploadedImg) { alert('先にジャケット画像を読み込んでください。'); return; }
         const text = window._xPostText || document.getElementById('result-text').value;
 
         if (navigator.share && navigator.canShare) {
@@ -971,6 +1095,10 @@
             alert('Web Share API はこのブラウザ/端末では非対応です。\nスマホのブラウザからご利用ください。');
         }
     };
+
+    // ─── 初期化 ───
+    restoreFormState();
+    update();
 </script>
 </body>
 </html>
