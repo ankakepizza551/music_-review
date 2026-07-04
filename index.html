@@ -239,6 +239,82 @@
             text-align: right;
         }
 
+        /* ─── RANGE SLIDER ─── */
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .range-row:last-child { margin-bottom: 0; }
+
+        .range-name {
+            flex: 0 0 64px;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .range-row input[type="range"] {
+            flex: 1;
+            accent-color: var(--gold);
+        }
+
+        .range-val {
+            flex: 0 0 40px;
+            text-align: right;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        /* ─── SAVED CARDS ─── */
+        .saved-cards-list {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .saved-card-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 3px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .saved-card-label {
+            flex: 1;
+            font-size: 0.78rem;
+            color: var(--paper);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .saved-card-load, .saved-card-del {
+            flex: 0 0 auto;
+            font-size: 0.68rem;
+            padding: 5px 10px;
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .saved-card-load:hover { border-color: var(--gold); color: var(--gold); }
+        .saved-card-del:hover { border-color: var(--red); color: var(--red); }
+
+        .saved-empty {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 14px;
+        }
+
         .timestamp-row {
             display: flex;
             align-items: center;
@@ -481,6 +557,20 @@
                 </div>
 
                 <div class="field">
+                    <label>画像補正</label>
+                    <div class="range-row">
+                        <span class="range-name">明るさ</span>
+                        <input type="range" id="brightness" min="50" max="150" value="100">
+                        <span class="range-val" id="brightness-val">100%</span>
+                    </div>
+                    <div class="range-row">
+                        <span class="range-name">コントラスト</span>
+                        <input type="range" id="contrast" min="50" max="150" value="100">
+                        <span class="range-val" id="contrast-val">100%</span>
+                    </div>
+                </div>
+
+                <div class="field">
                     <label>デザインテンプレート</label>
                     <div class="temp-grid">
                         <div class="temp-btn active" data-temp="standard">
@@ -491,6 +581,21 @@
                         </div>
                         <div class="temp-btn" data-temp="cyber">
                             <span class="temp-icon">⚡</span>音圧/電波
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>アスペクト比</label>
+                    <div class="temp-grid">
+                        <div class="temp-btn ratio-btn active" data-ratio="square">
+                            <span class="temp-icon">⬛</span>スクエア
+                        </div>
+                        <div class="temp-btn ratio-btn" data-ratio="portrait">
+                            <span class="temp-icon">📱</span>縦長
+                        </div>
+                        <div class="temp-btn ratio-btn" data-ratio="landscape">
+                            <span class="temp-icon">🖥</span>横長
                         </div>
                     </div>
                 </div>
@@ -544,6 +649,15 @@
                     <input type="url" id="url" placeholder="https://...">
                 </div>
             </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="step-num">03</span>
+                    <span class="step-title">保存済みカード</span>
+                </div>
+                <button class="btn btn-copy" id="save-card-btn" style="width:100%;">現在の内容を保存</button>
+                <div id="saved-cards-list" class="saved-cards-list"></div>
+            </div>
         </div>
 
         <!-- RIGHT: プレビュー -->
@@ -551,7 +665,7 @@
             <div class="sticky-preview">
                 <div class="panel">
                     <div class="panel-header">
-                        <span class="step-num">03</span>
+                        <span class="step-num">04</span>
                         <span class="step-title">生成結果</span>
                     </div>
 
@@ -574,12 +688,20 @@
     </div>
 </div>
 
+<script src="qrcode.js"></script>
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const resultImg = document.getElementById('result-image');
     let uploadedImg = null;
     let currentTemp = 'standard';
+    let currentRatio = 'square';
+
+    const RATIOS = {
+        square:    { w: 800, h: 800 },
+        portrait:  { w: 800, h: 1422 },
+        landscape: { w: 800, h: 450 }
+    };
 
     // ─── roundRect ポリフィル ───
     if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -598,16 +720,31 @@
     }
 
     // ─── イベント ───
-    document.querySelectorAll('.temp-btn').forEach(btn => {
+    document.querySelectorAll('.temp-btn[data-temp]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.temp-btn[data-temp]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTemp = btn.dataset.temp;
             update();
         });
     });
 
+    document.querySelectorAll('.ratio-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRatio = btn.dataset.ratio;
+            update();
+        });
+    });
+
     document.querySelectorAll('input:not([name="points"])').forEach(el => el.addEventListener('input', update));
+
+    ['brightness', 'contrast'].forEach(id => {
+        const input = document.getElementById(id);
+        const val = document.getElementById(`${id}-val`);
+        input.addEventListener('input', () => { val.textContent = `${input.value}%`; });
+    });
 
     function loadImageFile(file) {
         if (!file || !file.type.startsWith('image/')) return;
@@ -661,19 +798,75 @@
     }
 
     // ─── ヘルパー ───
+    function getImageFilter() {
+        const b = document.getElementById('brightness').value;
+        const c = document.getElementById('contrast').value;
+        return `brightness(${b}%) contrast(${c}%)`;
+    }
+
     function drawImage() {
+        const W = canvas.width, H = canvas.height;
         if (!uploadedImg) {
-            const g = ctx.createLinearGradient(0, 0, 800, 800);
+            const g = ctx.createLinearGradient(0, 0, 0, H);
             g.addColorStop(0, '#1a1a22');
             g.addColorStop(1, '#0a0a0f');
             ctx.fillStyle = g;
-            ctx.fillRect(0, 0, 800, 800);
+            ctx.fillRect(0, 0, W, H);
             return;
         }
-        const s = Math.min(uploadedImg.width, uploadedImg.height);
-        ctx.drawImage(uploadedImg,
-            (uploadedImg.width - s) / 2, (uploadedImg.height - s) / 2, s, s,
-            0, 0, 800, 800);
+        const targetRatio = W / H;
+        const srcRatio = uploadedImg.width / uploadedImg.height;
+        let sx, sy, sw, sh;
+        if (srcRatio > targetRatio) {
+            sh = uploadedImg.height;
+            sw = sh * targetRatio;
+            sy = 0;
+            sx = (uploadedImg.width - sw) / 2;
+        } else {
+            sw = uploadedImg.width;
+            sh = sw / targetRatio;
+            sx = 0;
+            sy = (uploadedImg.height - sh) / 2;
+        }
+        ctx.save();
+        ctx.filter = getImageFilter();
+        ctx.drawImage(uploadedImg, sx, sy, sw, sh, 0, 0, W, H);
+        ctx.restore();
+    }
+
+    // ─── QR コード ───
+    function generateQr(text) {
+        try {
+            const qr = qrcode(0, 'M');
+            qr.addData(text);
+            qr.make();
+            return qr;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function drawQrCode(qr, W, H, hs) {
+        if (!qr) return;
+        const count = qr.getModuleCount();
+        const size = 72 * hs;
+        const margin = 8;
+        // 右上固定：どのテンプレート・比率でもタイトルやタグと重ならない余白
+        const x = W - size - 26;
+        const y = 26;
+        const cell = size / count;
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(x - margin, y - margin, size + margin * 2, size + margin * 2);
+        ctx.fillStyle = '#000';
+        for (let r = 0; r < count; r++) {
+            for (let c = 0; c < count; c++) {
+                if (qr.isDark(r, c)) {
+                    ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
+                }
+            }
+        }
+        ctx.restore();
     }
 
     function drawTags(points, y, textColor = '#c9a84c', bgColor = 'rgba(0,0,0,0.55)') {
@@ -695,40 +888,41 @@
     }
 
     // ─── テンプレート 1: 標準（マガジン風） ───
-    function drawStandard(title, catchphrase, points) {
+    function drawStandard(title, catchphrase, points, qr) {
+        const W = canvas.width, H = canvas.height, hs = H / 800;
         drawImage();
 
         // 下部グラデーション（深め）
-        const g1 = ctx.createLinearGradient(0, 380, 0, 800);
+        const g1 = ctx.createLinearGradient(0, 380 * hs, 0, H);
         g1.addColorStop(0, 'rgba(0,0,0,0)');
         g1.addColorStop(0.45, 'rgba(0,0,0,0.65)');
         g1.addColorStop(1, 'rgba(0,0,0,0.92)');
         ctx.fillStyle = g1;
-        ctx.fillRect(0, 380, 800, 420);
+        ctx.fillRect(0, 380 * hs, W, 420 * hs);
 
         // 上部薄グラデ
-        const g2 = ctx.createLinearGradient(0, 0, 0, 120);
+        const g2 = ctx.createLinearGradient(0, 0, 0, 120 * hs);
         g2.addColorStop(0, 'rgba(0,0,0,0.5)');
         g2.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = g2;
-        ctx.fillRect(0, 0, 800, 120);
+        ctx.fillRect(0, 0, W, 120 * hs);
 
         // 左側ゴールドライン
         ctx.fillStyle = '#c9a84c';
-        ctx.fillRect(30, 540, 3, 200);
+        ctx.fillRect(30, 540 * hs, 3, 200 * hs);
 
         // NEW RELEASE ラベル（スペース区切りで擬似トラッキング）
         ctx.save();
         ctx.font = '700 13px "Hiragino Kaku Gothic ProN", sans-serif';
         ctx.fillStyle = '#c9a84c';
-        ctx.fillText('N E W  R E L E A S E', 46, 570);
+        ctx.fillText('N E W  R E L E A S E', 46, 570 * hs);
         ctx.restore();
 
         // タイトル（大きく）
         ctx.save();
         ctx.fillStyle = '#f0ede6';
         ctx.textAlign = 'left';
-        let fs = 72;
+        let fs = 72 * Math.min(1, hs);
         ctx.font = `900 ${fs}px "Noto Serif JP", serif`;
         while (ctx.measureText(title).width > 710 && fs > 32) {
             fs -= 2;
@@ -736,7 +930,7 @@
         }
         ctx.shadowColor = 'rgba(0,0,0,0.8)';
         ctx.shadowBlur = 12;
-        ctx.fillText(title, 46, 640);
+        ctx.fillText(title, 46, 640 * hs);
         ctx.restore();
 
         // キャッチコピー
@@ -744,47 +938,50 @@
             ctx.save();
             ctx.font = 'italic 20px "Noto Serif JP", serif';
             ctx.fillStyle = 'rgba(240,237,230,0.65)';
-            ctx.fillText(catchphrase, 46, 672);
+            ctx.fillText(catchphrase, 46, 672 * hs);
             ctx.restore();
         }
 
         // こだわりタグ
-        drawTags(points, 738, '#c9a84c', 'rgba(0,0,0,0.6)');
+        drawTags(points, 738 * hs, '#c9a84c', 'rgba(0,0,0,0.6)');
+
+        drawQrCode(qr, W, H, hs);
     }
 
     // ─── テンプレート 2: エモ系（映画ポスター風） ───
-    function drawEmo(title, catchphrase, points) {
+    function drawEmo(title, catchphrase, points, qr) {
+        const W = canvas.width, H = canvas.height, hs = H / 800;
         drawImage();
 
         // 全体に薄いモノクロフィルター
         ctx.save();
         ctx.globalCompositeOperation = 'multiply';
-        const gMono = ctx.createLinearGradient(0, 0, 800, 800);
+        const gMono = ctx.createLinearGradient(0, 0, W, H);
         gMono.addColorStop(0, 'rgba(30,20,40,0.45)');
         gMono.addColorStop(1, 'rgba(10,10,20,0.55)');
         ctx.fillStyle = gMono;
-        ctx.fillRect(0, 0, 800, 800);
+        ctx.fillRect(0, 0, W, H);
         ctx.restore();
 
         // 上下グラデーション
-        const gTop = ctx.createLinearGradient(0, 0, 0, 300);
+        const gTop = ctx.createLinearGradient(0, 0, 0, 300 * hs);
         gTop.addColorStop(0, 'rgba(0,0,0,0.75)');
         gTop.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = gTop;
-        ctx.fillRect(0, 0, 800, 300);
+        ctx.fillRect(0, 0, W, 300 * hs);
 
-        const gBot = ctx.createLinearGradient(0, 450, 0, 800);
+        const gBot = ctx.createLinearGradient(0, 450 * hs, 0, H);
         gBot.addColorStop(0, 'rgba(0,0,0,0)');
         gBot.addColorStop(1, 'rgba(0,0,0,0.88)');
         ctx.fillStyle = gBot;
-        ctx.fillRect(0, 450, 800, 350);
+        ctx.fillRect(0, 450 * hs, W, 350 * hs);
 
         // 水平線（上部）
         ctx.save();
         ctx.strokeStyle = 'rgba(255,255,255,0.25)';
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(40, 60); ctx.lineTo(760, 60); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(40, 68); ctx.lineTo(760, 68); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(40, 60 * hs); ctx.lineTo(760, 60 * hs); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(40, 68 * hs); ctx.lineTo(760, 68 * hs); ctx.stroke();
         ctx.restore();
 
         // 上部小テキスト
@@ -792,7 +989,7 @@
         ctx.font = '400 11px "Hiragino Kaku Gothic ProN", sans-serif';
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.textAlign = 'center';
-        ctx.fillText('— NEW TRACK —', 400, 48);
+        ctx.fillText('— NEW TRACK —', 400, 48 * hs);
         ctx.restore();
 
         // キャッチコピー（中央上）
@@ -803,14 +1000,14 @@
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0,0,0,0.9)';
             ctx.shadowBlur = 20;
-            ctx.fillText(catchphrase, 400, 200);
+            ctx.fillText(catchphrase, 400, 200 * hs);
             ctx.restore();
         }
 
         // タイトル（下部、大きく中央）
         ctx.save();
         ctx.textAlign = 'center';
-        let fs = 80;
+        let fs = 80 * Math.min(1, hs);
         ctx.font = `900 ${fs}px "Noto Serif JP", serif`;
         while (ctx.measureText(title).width > 720 && fs > 36) {
             fs -= 2;
@@ -819,39 +1016,42 @@
         ctx.shadowColor = 'rgba(0,0,0,1)';
         ctx.shadowBlur = 24;
         ctx.fillStyle = '#fff';
-        ctx.fillText(title, 400, 720);
+        ctx.fillText(title, 400, 720 * hs);
         ctx.restore();
 
         // 水平線（下部）
         ctx.save();
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(40, 742); ctx.lineTo(760, 742); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(40, 742 * hs); ctx.lineTo(760, 742 * hs); ctx.stroke();
         ctx.restore();
 
         // タグ（下部）
-        drawTags(points, 780, '#e8d08a', 'rgba(0,0,0,0.5)');
+        drawTags(points, 780 * hs, '#e8d08a', 'rgba(0,0,0,0.5)');
+
+        drawQrCode(qr, W, H, hs);
     }
 
     // ─── テンプレート 3: サイバー（グリッチ風） ───
-    function drawCyber(title, catchphrase, points) {
+    function drawCyber(title, catchphrase, points, qr) {
+        const W = canvas.width, H = canvas.height, hs = H / 800;
         drawImage();
 
         // スキャンライン風オーバーレイ
         ctx.save();
-        for (let y = 0; y < 800; y += 4) {
+        for (let y = 0; y < H; y += 4) {
             ctx.fillStyle = 'rgba(0,0,0,0.12)';
-            ctx.fillRect(0, y, 800, 2);
+            ctx.fillRect(0, y, W, 2);
         }
         ctx.restore();
 
         // 下部ブロック
-        const gCyber = ctx.createLinearGradient(0, 560, 0, 800);
+        const gCyber = ctx.createLinearGradient(0, 560 * hs, 0, H);
         gCyber.addColorStop(0, 'rgba(0,0,0,0)');
         gCyber.addColorStop(0.3, 'rgba(0,10,20,0.85)');
         gCyber.addColorStop(1, 'rgba(0,10,20,0.97)');
         ctx.fillStyle = gCyber;
-        ctx.fillRect(0, 560, 800, 240);
+        ctx.fillRect(0, 560 * hs, W, 240 * hs);
 
         // シアンのアクセントライン
         ctx.save();
@@ -859,12 +1059,12 @@
         ctx.lineWidth = 2;
         ctx.shadowColor = '#00d2ff';
         ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.moveTo(30, 608); ctx.lineTo(770, 608); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(30, 608 * hs); ctx.lineTo(770, 608 * hs); ctx.stroke();
         ctx.restore();
 
         // グリッチ風タイトル（影ずらし）
         ctx.save();
-        let fs = 82;
+        let fs = 82 * Math.min(1, hs);
         ctx.font = `900 ${fs}px "Bebas Neue", sans-serif`;
         while (ctx.measureText(title).width > 740 && fs > 36) {
             fs -= 2;
@@ -875,14 +1075,14 @@
         // グリッチ赤
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = '#ff003c';
-        ctx.fillText(title, 33, 695);
+        ctx.fillText(title, 33, 695 * hs);
         // グリッチ青
         ctx.fillStyle = '#00d2ff';
-        ctx.fillText(title, 27, 693);
+        ctx.fillText(title, 27, 693 * hs);
         // 本体
         ctx.globalAlpha = 1;
         ctx.fillStyle = '#f0ede6';
-        ctx.fillText(title, 30, 694);
+        ctx.fillText(title, 30, 694 * hs);
         ctx.restore();
 
         // キャッチコピー
@@ -891,22 +1091,24 @@
             ctx.font = '400 17px "Zen Kaku Gothic New", sans-serif';
             ctx.fillStyle = '#00d2ff';
             ctx.textAlign = 'left';
-            ctx.fillText('// ' + catchphrase, 32, 730);
+            ctx.fillText('// ' + catchphrase, 32, 730 * hs);
             ctx.restore();
         }
 
         // タグ
-        drawTags(points, 775, '#00d2ff', 'rgba(0,20,30,0.7)');
+        drawTags(points, 775 * hs, '#00d2ff', 'rgba(0,20,30,0.7)');
 
         // 上部HUDライン
         ctx.save();
         ctx.strokeStyle = 'rgba(0,210,255,0.3)';
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(160, 30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(30, 30 * hs); ctx.lineTo(160, 30 * hs); ctx.stroke();
         ctx.font = '400 11px monospace';
         ctx.fillStyle = 'rgba(0,210,255,0.5)';
-        ctx.fillText('REC ●  NEW RELEASE', 30, 25);
+        ctx.fillText('REC ●  NEW RELEASE', 30, 25 * hs);
         ctx.restore();
+
+        drawQrCode(qr, W, H, hs);
     }
 
     // ─── チップ上限制御（3件で残りをグレーアウト）───
@@ -944,14 +1146,21 @@
         const title       = document.getElementById('title').value || 'Untitled';
         const catchphrase = document.getElementById('catchphrase').value || '';
         const points      = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.value);
+        const url         = document.getElementById('url').value;
+
+        const { w, h } = RATIOS[currentRatio] || RATIOS.square;
+        canvas.width = w;
+        canvas.height = h;
+
+        const qr = (url && validateUrl(url)) ? generateQr(url) : null;
 
         // フォントロード待ち
         document.fonts.ready.then(() => {
-            ctx.clearRect(0, 0, 800, 800);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (currentTemp === 'emo')        drawEmo(title, catchphrase, points);
-            else if (currentTemp === 'cyber') drawCyber(title, catchphrase, points);
-            else                              drawStandard(title, catchphrase, points);
+            if (currentTemp === 'emo')        drawEmo(title, catchphrase, points, qr);
+            else if (currentTemp === 'cyber') drawCyber(title, catchphrase, points, qr);
+            else                              drawStandard(title, catchphrase, points, qr);
 
             const dataUrl = canvas.toDataURL('image/png');
             resultImg.src = dataUrl;
@@ -1002,27 +1211,28 @@
         updateCharCount(id, `${id}-count`);
     });
 
-    // ─── 入力内容の自動保存・復元（ローカルのみ） ───
+    // ─── 入力状態の取得・反映（自動保存・保存済みカード共通） ───
     const STORAGE_KEY = 'onga-premium-form';
-    const PERSISTED_FIELDS = ['title', 'catchphrase', 't-min', 't-sec', 'url'];
+    const SAVED_CARDS_KEY = 'onga-premium-saved-cards';
+    const PERSISTED_FIELDS = ['title', 'catchphrase', 't-min', 't-sec', 'url', 'brightness', 'contrast'];
 
-    function saveFormState() {
+    function captureState() {
         const state = {};
         PERSISTED_FIELDS.forEach(id => { state[id] = document.getElementById(id).value; });
         state.points = Array.from(document.querySelectorAll('input[name="points"]:checked')).map(cb => cb.id);
         state.temp = currentTemp;
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+        state.ratio = currentRatio;
+        return state;
     }
 
-    function restoreFormState() {
-        let state;
-        try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return; }
+    function applyState(state) {
         if (!state) return;
 
         PERSISTED_FIELDS.forEach(id => {
-            if (state[id]) document.getElementById(id).value = state[id];
+            if (state[id] !== undefined && state[id] !== '') document.getElementById(id).value = state[id];
         });
 
+        document.querySelectorAll('input[name="points"]').forEach(cb => { cb.checked = false; });
         (state.points || []).forEach(id => {
             const cb = document.getElementById(id);
             if (cb) cb.checked = true;
@@ -1032,21 +1242,102 @@
         if (state.temp) {
             const btn = document.querySelector(`.temp-btn[data-temp="${state.temp}"]`);
             if (btn) {
-                document.querySelectorAll('.temp-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.temp-btn[data-temp]').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentTemp = state.temp;
             }
         }
 
+        if (state.ratio) {
+            const btn = document.querySelector(`.ratio-btn[data-ratio="${state.ratio}"]`);
+            if (btn) {
+                document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRatio = state.ratio;
+            }
+        }
+
         updateCharCount('title', 'title-count');
         updateCharCount('catchphrase', 'catchphrase-count');
+        document.getElementById('brightness-val').textContent = `${document.getElementById('brightness').value}%`;
+        document.getElementById('contrast-val').textContent = `${document.getElementById('contrast').value}%`;
+    }
+
+    function saveFormState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(captureState())); } catch {}
+    }
+
+    function restoreFormState() {
+        let state;
+        try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return; }
+        applyState(state);
     }
 
     document.querySelectorAll('.settings-col input').forEach(el => {
         el.addEventListener('input', saveFormState);
         el.addEventListener('change', saveFormState);
     });
-    document.querySelectorAll('.temp-btn').forEach(btn => btn.addEventListener('click', saveFormState));
+    document.querySelectorAll('.temp-btn[data-temp], .ratio-btn').forEach(btn => btn.addEventListener('click', saveFormState));
+
+    // ─── 保存済みカード ───
+    function getSavedCards() {
+        try { return JSON.parse(localStorage.getItem(SAVED_CARDS_KEY)) || []; } catch { return []; }
+    }
+
+    function setSavedCards(list) {
+        try { localStorage.setItem(SAVED_CARDS_KEY, JSON.stringify(list)); } catch {}
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function renderSavedCards() {
+        const list = getSavedCards();
+        const container = document.getElementById('saved-cards-list');
+
+        if (!list.length) {
+            container.innerHTML = '<p class="saved-empty">まだ保存されたカードはありません</p>';
+            return;
+        }
+
+        container.innerHTML = list.slice().reverse().map(item => `
+            <div class="saved-card-item">
+                <span class="saved-card-label">${escapeHtml(item.title || 'Untitled')}</span>
+                <button class="saved-card-load" data-id="${item.id}">呼出</button>
+                <button class="saved-card-del" data-id="${item.id}">削除</button>
+            </div>
+        `).join('');
+
+        container.querySelectorAll('.saved-card-load').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = getSavedCards().find(c => c.id === btn.dataset.id);
+                if (item) {
+                    applyState(item);
+                    saveFormState();
+                    update();
+                }
+            });
+        });
+
+        container.querySelectorAll('.saved-card-del').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setSavedCards(getSavedCards().filter(c => c.id !== btn.dataset.id));
+                renderSavedCards();
+            });
+        });
+    }
+
+    document.getElementById('save-card-btn').addEventListener('click', () => {
+        const state = captureState();
+        state.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const list = getSavedCards();
+        list.push(state);
+        setSavedCards(list);
+        renderSavedCards();
+    });
 
     // ─── コピー ───
     document.getElementById('copy-btn').onclick = () => {
@@ -1098,6 +1389,7 @@
 
     // ─── 初期化 ───
     restoreFormState();
+    renderSavedCards();
     update();
 </script>
 </body>
