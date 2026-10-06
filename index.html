@@ -869,6 +869,16 @@
         ctx.restore();
     }
 
+    // 幅に収まるまでフォントサイズを縮める（ctx.font は設定済みの状態で返る）
+    function fitFont(text, maxWidth, size, minSize, fontOf) {
+        ctx.font = fontOf(size);
+        while (ctx.measureText(text).width > maxWidth && size > minSize) {
+            size -= 1;
+            ctx.font = fontOf(size);
+        }
+        return size;
+    }
+
     function drawTags(points, y, textColor = '#c9a84c', bgColor = 'rgba(0,0,0,0.55)') {
         if (!points.length) return;
         ctx.save();
@@ -936,7 +946,7 @@
         // キャッチコピー
         if (catchphrase) {
             ctx.save();
-            ctx.font = 'italic 20px "Noto Serif JP", serif';
+            fitFont(catchphrase, 710, 20, 11, s => `italic ${s}px "Noto Serif JP", serif`);
             ctx.fillStyle = 'rgba(240,237,230,0.65)';
             ctx.fillText(catchphrase, 46, 672 * hs);
             ctx.restore();
@@ -995,7 +1005,7 @@
         // キャッチコピー（中央上）
         if (catchphrase) {
             ctx.save();
-            ctx.font = 'italic 700 26px "Noto Serif JP", serif';
+            fitFont(catchphrase, 720, 26, 11, s => `italic 700 ${s}px "Noto Serif JP", serif`);
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0,0,0,0.9)';
@@ -1088,7 +1098,7 @@
         // キャッチコピー
         if (catchphrase) {
             ctx.save();
-            ctx.font = '400 17px "Zen Kaku Gothic New", sans-serif';
+            fitFont('// ' + catchphrase, 736, 17, 11, s => `400 ${s}px "Zen Kaku Gothic New", sans-serif`);
             ctx.fillStyle = '#00d2ff';
             ctx.textAlign = 'left';
             ctx.fillText('// ' + catchphrase, 32, 730 * hs);
@@ -1229,7 +1239,7 @@
         if (!state) return;
 
         PERSISTED_FIELDS.forEach(id => {
-            if (state[id] !== undefined && state[id] !== '') document.getElementById(id).value = state[id];
+            if (state[id] !== undefined) document.getElementById(id).value = state[id];
         });
 
         document.querySelectorAll('input[name="points"]').forEach(cb => { cb.checked = false; });
@@ -1362,29 +1372,34 @@
 
     // ─── Web Share API ───
     const shareHint = document.getElementById('share-hint');
-    if (navigator.share && navigator.canShare) {
+    const canShareFiles = !!(navigator.share && navigator.canShare
+        && navigator.canShare({ files: [new File([], 'probe.png', { type: 'image/png' })] }));
+    if (canShareFiles) {
         shareHint.textContent = 'タップすると画像＋テキストをそのままシェアできます';
     } else {
-        shareHint.textContent = '※ Web Share API はこのブラウザでは非対応です（スマホ推奨）';
+        shareHint.textContent = '※ このブラウザではテキスト入りの投稿画面を開きます。画像は「画像を保存」してから添付してください';
     }
 
-    document.getElementById('x-btn').onclick = async () => {
+    // 画像付きシェア非対応の環境向け：テキストだけ入った投稿画面を開く
+    function openXIntent(text) {
+        window.open('https://x.com/intent/post?text=' + encodeURIComponent(text), '_blank', 'noopener');
+    }
+
+    document.getElementById('x-btn').onclick = () => {
         const text = window._xPostText || document.getElementById('result-text').value;
 
-        if (navigator.share && navigator.canShare) {
-            canvas.toBlob(async (blob) => {
-                const title = document.getElementById('title').value || 'onga';
-                const file = new File([blob], `${title}.png`, { type: 'image/png' });
-                if (navigator.canShare({ files: [file] })) {
-                    try { await navigator.share({ files: [file], text }); }
-                    catch (e) { if (e.name !== 'AbortError') alert('シェアに失敗しました。'); }
-                } else {
-                    alert('このブラウザは画像付きシェアに対応していません。');
-                }
-            }, 'image/png');
-        } else {
-            alert('Web Share API はこのブラウザ/端末では非対応です。\nスマホのブラウザからご利用ください。');
+        // 新規タブはクリック直後でないとブロックされるため、対応可否は先に同期で判定する
+        if (!canShareFiles) {
+            openXIntent(text);
+            return;
         }
+
+        canvas.toBlob(async (blob) => {
+            const title = document.getElementById('title').value || 'onga';
+            const file = new File([blob], `${title}.png`, { type: 'image/png' });
+            try { await navigator.share({ files: [file], text }); }
+            catch (e) { if (e.name !== 'AbortError') alert('シェアに失敗しました。'); }
+        }, 'image/png');
     };
 
     // ─── 初期化 ───
